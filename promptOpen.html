@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple OpenAI GPT Prompt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 80%;
+            height: 100px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            width: 80%;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple OpenAI GPT Prompt</h1>
+    
+    <!-- Text area for entering the prompt -->
+    <textarea id="prompt" rows="10" cols="50" placeholder="Write your prompt here..."></textarea><br>
+    
+    <!-- Button to send the prompt -->
+    <button id="sendPromptBtn">Send Prompt</button>
+    
+    <h2>Response:</h2>
+    <!-- Area to display the response -->
+    <pre id="response"></pre>
+
+    <script type="module">
+        import API_KEY from './config.js';
+        
+        // Function that will be executed when the button is clicked
+        function sendPrompt() {
+            // Get the text that the user wrote in the text area
+            var prompt = document.getElementById('prompt').value;
+            // Select the element where the response will be displayed
+            var responseElement = document.getElementById('response');
+
+            // Create a new XMLHttpRequest object
+            var xhr = new XMLHttpRequest();
+            // Set up the request type and URL
+            xhr.open("POST", "https://api.openai.com/v1/chat/completions", true);
+            // Set the header for the content type
+            xhr.setRequestHeader("Content-Type", "application/json");
+            // Add the API Key to the authorization header
+            xhr.setRequestHeader("Authorization", `Bearer ${API_KEY}`);
+
+            // Set up what to do when we receive a response from the server
+            xhr.onreadystatechange = function () {
+                // Check if the request is complete
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        // Parse the JSON response into a JavaScript object
+                        var response = JSON.parse(xhr.responseText);
+                        // Display the response in the <pre> element
+                        responseElement.textContent = response.choices[0].message.content;
+                    } else {
+                        // If there is an error, display it
+                        responseElement.textContent = "Error: " + xhr.status + " " + xhr.statusText + "\n" + xhr.responseText;
+                    }
+                }
+            };
+
+            // Create the JSON body of the request
+            var data = JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [{"role": "user", "content": prompt}],
+                max_tokens: 100
+            });
+
+            // Send the request with the JSON body
+            xhr.send(data);
+        }
+
+        // Add event listener to the button to call sendPrompt when clicked
+        document.getElementById('sendPromptBtn').addEventListener('click', sendPrompt);
+    </script>
+</body>
+</html>
