@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI Prompt Processor</title>
+    <title>OpenAI Text and Image Generator</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,7 +11,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             background-color: #f0f0f0;
             margin: 0;
         }
@@ -36,43 +36,46 @@
         button:hover {
             background-color: #0056b3;
         }
-        pre, img {
+        pre {
             width: 80%;
             padding: 10px;
             background-color: white;
             border: 1px solid #ccc;
             border-radius: 5px;
             margin-top: 20px;
-            white-space: pre-wrap;  /* This ensures the text wraps */
-            word-wrap: break-word;   /* This ensures long words break */
-            overflow: auto;          /* This makes the box scrollable */
-            max-height: 200px;       /* This sets a maximum height */
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
         img {
-            width: 100%;      /* Make the image take up the full width of its container */
-            height: auto;     /* Automatically adjust the height to maintain aspect ratio */
-            max-height: 500px; /* Optional: Set a maximum height to prevent it from being too large */
-            object-fit: contain; /* Ensures the image fits within the container while maintaining aspect ratio */
+            width: 80%;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 600px;
+            object-fit: contain;
+        }
+        h2 {
+            margin: 20px 0 10px 0;
         }
     </style>
 </head>
 <body>
-    <h1>OpenAI Prompt Processor</h1>
+    <h1>OpenAI Text and Image Generator</h1>
     
-    <!-- Text area for text processing prompt -->
+    <h2>Input for Text</h2>
     <textarea id="textPrompt" placeholder="Write your text prompt here..."></textarea><br>
-    <!-- Button to send the text prompt -->
-    <button id="sendTextPromptBtn">Process Text</button>
+    <button id="sendTextPromptBtn">Generate Text</button>
     
-    <!-- Text area for image generation prompt -->
+    <h2>Generated Text</h2>
+    <pre id="textResponse"></pre>
+    
+    <h2>Input for Image Description</h2>
     <textarea id="imagePrompt" placeholder="Describe the image you want to generate..."></textarea><br>
-    <!-- Button to send the image prompt -->
     <button id="sendImagePromptBtn">Generate Image</button>
     
-    <h2>Response:</h2>
-    <!-- Area to display the text response -->
-    <pre id="textResponse"></pre>
-    <!-- Area to display the generated image -->
+    <h2>Generated Image</h2>
     <img id="generatedImage" src="" alt="Generated Image">
 
     <script type="module">
@@ -92,21 +95,24 @@
                     body: JSON.stringify({
                         model: "gpt-3.5-turbo",
                         messages: [{"role": "user", "content": prompt}],
-                        max_tokens: 500  // Increased to allow more text generation
+                        max_tokens: 500
                     })
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     responseElement.textContent = data.choices[0].message.content;
+                    adjustPreHeight(responseElement);
                 } else {
                     const errorData = await response.json();
                     console.error("Error:", errorData);
                     responseElement.textContent = `Error: ${response.status} ${response.statusText}\n${errorData.error.message}`;
+                    adjustPreHeight(responseElement);
                 }
             } catch (error) {
                 console.error("Error:", error);
                 responseElement.textContent = `Error: ${error.message}`;
+                adjustPreHeight(responseElement);
             }
         }
 
@@ -140,6 +146,11 @@
                 console.error("Error:", error);
                 imageElement.alt = `Error: ${error.message}`;
             }
+        }
+
+        function adjustPreHeight(preElement) {
+            preElement.style.height = 'auto';
+            preElement.style.height = preElement.scrollHeight + 'px';
         }
 
         document.getElementById('sendTextPromptBtn').addEventListener('click', sendTextPrompt);
