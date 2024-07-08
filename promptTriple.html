@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI Text, Image, and Chatbot Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #d3dfe4; /* Light blue/grey background color */
+            margin: 0;
+        }
+        textarea, input[type="text"] {
+            width: 80%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #9370DB; /* Purple button color */
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #7B68EE; /* Darker purple on hover */
+        }
+        pre, img {
+            width: 80%;
+            padding: 10px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: auto;
+        }
+        img {
+            max-height: 600px;
+            object-fit: contain;
+        }
+        h2 {
+            margin: 20px 0 10px 0;
+            align-self: flex-start;
+        }
+        .loading {
+            display: none;
+            font-size: 16px;
+            color: #9370DB; /* Purple loading text color */
+        }
+        .progress-bar {
+            width: 80%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 10px;
+            height: 20px;
+            display: none;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            width: 0;
+            background-color: #9370DB; /* Purple progress bar color */
+            text-align: center;
+            color: white;
+            line-height: 20px;
+        }
+        hr {
+            width: 80%;
+            margin: 20px 0;
+            border: none;
+            border-top: 3px solid #9370DB; /* Thicker purple line */
+        }
+        .chat-container {
+            width: 80%;
+            max-height: 400px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .chat-bubble {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 60%; /* Adjusted width */
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #007BFF;
+            color: white;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f1f1f1;
+            color: black;
+            align-self: flex-start;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>OpenAI Text, Image, and Chatbot Generator</h1>
+    
+    <h2>Input for Text</h2>
+    <textarea id="textPrompt" placeholder="Write your text prompt here..."></textarea><br>
+    <button id="sendTextPromptBtn">Generate Text</button>
+    <div id="textLoading" class="loading">Generating text...</div>
+    <div id="textProgressBar" class="progress-bar"><div id="textProgressBarInner" class="progress-bar-inner"></div></div>
+    
+    <h2>Generated Text</h2>
+    <pre id="textResponse"></pre>
+    
+    <hr>
+    
+    <h2>Input for Image Description</h2>
+    <textarea id="imagePrompt" placeholder="Describe the image you want to generate..."></textarea><br>
+    <button id="sendImagePromptBtn">Generate Image</button>
+    <div id="imageLoading" class="loading">Generating image...</div>
+    <div id="imageProgressBar" class="progress-bar"><div id="imageProgressBarInner" class="progress-bar-inner"></div></div>
+    
+    <h2>Generated Image</h2>
+    <img id="generatedImage" src="" alt="Generated Image">
+    
+    <hr>
+    
+    <h2>Chatbot</h2>
+    <div class="chat-container" id="chatContainer"></div>
+    <input type="text" id="chatInput" placeholder="Type your message..."><br>
+    <button id="sendChatBtn">Send</button>
+    <div id="chatLoading" class="loading">Sending message...</div>
+    <div id="chatProgressBar" class="progress-bar"><div id="chatProgressBarInner" class="progress-bar-inner"></div></div>
+
+    <script type="module">
+        import API_KEY from './config.js';
+
+        async function sendTextPrompt() {
+            const prompt = document.getElementById('textPrompt').value;
+            const responseElement = document.getElementById('textResponse');
+            const loadingElement = document.getElementById('textLoading');
+            const progressBar = document.getElementById('textProgressBar');
+            const progressBarInner = document.getElementById('textProgressBarInner');
+
+            // Show loading message and progress bar
+            loadingElement.style.display = 'block';
+            progressBar.style.display = 'block';
+
+            // Simulate progress bar
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress >= 100) {
+                    clearInterval(interval);
+                } else {
+                    progress += 10;
+                    progressBarInner.style.width = progress + '%';
+                    progressBarInner.textContent = progress + '%';
+                }
+            }, 300);
+
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{"role": "user", "content": prompt}],
+                        max_tokens: 500
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    responseElement.textContent = data.choices[0].message.content;
+                    adjustPreHeight(responseElement);
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error:", errorData);
+                    responseElement.textContent = `Error: ${response.status} ${response.statusText}\n${errorData.error.message}`;
+                    adjustPreHeight(responseElement);
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                responseElement.textContent = `Error: ${error.message}`;
+                adjustPreHeight(responseElement);
+            } finally {
+                // Hide loading message and progress bar
+                loadingElement.style.display = 'none';
+                progressBar.style.display = 'none';
+                clearInterval(interval);
+                progressBarInner.style.width = '100%';
+                progressBarInner.textContent = '100%';
+            }
+        }
+
+        async function sendImagePrompt() {
+            const prompt = document.getElementById('imagePrompt').value;
+            const imageElement = document.getElementById('generatedImage');
+            const loadingElement = document.getElementById('imageLoading');
+            const progressBar = document.getElementById('imageProgressBar');
+            const progressBarInner = document.getElementById('imageProgressBarInner');
+
+            // Show loading message and progress bar
+            loadingElement.style.display = 'block';
+            progressBar.style.display = 'block';
+
+            // Simulate progress bar
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress >= 100) {
+                    clearInterval(interval);
+                } else {
+                    progress += 10;
+                    progressBarInner.style.width = progress + '%';
+                    progressBarInner.textContent = progress + '%';
+                }
+            }, 300);
+
+            try {
+                const response = await fetch("https://api.openai.com/v1/images/generations", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        n: 1,
+                        size: "1024x1024"
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    imageElement.src = data.data[0].url;
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error:", errorData);
+                    imageElement.alt = `Error: ${response.status} ${response.statusText}\n${errorData.error.message}`;
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                imageElement.alt = `Error: ${error.message}`;
+            } finally {
+                // Hide loading message and progress bar
+                loadingElement.style.display = 'none';
+                progressBar.style.display = 'none';
+                clearInterval(interval);
+                progressBarInner.style.width = '100%';
+                progressBarInner.textContent = '100%';
+            }
+        }
+
+        async function sendChatPrompt() {
+            const prompt = document.getElementById('chatInput').value;
+            const chatContainer = document.getElementById('chatContainer');
+            const loadingElement = document.getElementById('chatLoading');
+            const progressBar = document.getElementById('chatProgressBar');
+            const progressBarInner = document.getElementById('chatProgressBarInner');
+
+            // Show loading message and progress bar
+            loadingElement.style.display = 'block';
+            progressBar.style.display = 'block';
+
+            // Simulate progress bar
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress >= 100) {
+                    clearInterval(interval);
+                } else {
+                    progress += 10;
+                    progressBarInner.style.width = progress + '%';
+                    progressBarInner.textContent = progress + '%';
+                }
+            }, 300);
+
+            // Append user message to chat container
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('chat-bubble', 'user-message');
+            userMessage.textContent = prompt;
+            chatContainer.appendChild(userMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Clear the input box
+            document.getElementById('chatInput').value = '';
+
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{"role": "user", "content": prompt}],
+                        max_tokens: 500
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const botMessage = document.createElement('div');
+                    botMessage.classList.add('chat-bubble', 'bot-message');
+                    botMessage.textContent = data.choices[0].message.content;
+                    chatContainer.appendChild(botMessage);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    const errorData = await response.json();
+                    console.error("Error:", errorData);
+                    const botMessage = document.createElement('div');
+                    botMessage.classList.add('chat-bubble', 'bot-message');
+                    botMessage.textContent = `Error: ${response.status} ${response.statusText}\n${errorData.error.message}`;
+                    chatContainer.appendChild(botMessage);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                const botMessage = document.createElement('div');
+                botMessage.classList.add('chat-bubble', 'bot-message');
+                botMessage.textContent = `Error: ${error.message}`;
+                chatContainer.appendChild(botMessage);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } finally {
+                // Hide loading message and progress bar
+                loadingElement.style.display = 'none';
+                progressBar.style.display = 'none';
+                clearInterval(interval);
+                progressBarInner.style.width = '100%';
+                progressBarInner.textContent = '100%';
+            }
+        }
+
+        function adjustPreHeight(preElement) {
+            preElement.style.height = 'auto';
+            preElement.style.height = preElement.scrollHeight + 'px';
+        }
+
+        document.getElementById('sendTextPromptBtn').addEventListener('click', sendTextPrompt);
+        document.getElementById('textPrompt').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendTextPrompt();
+                e.preventDefault(); // Prevent the default newline action
+            }
+        });
+
+        document.getElementById('sendImagePromptBtn').addEventListener('click', sendImagePrompt);
+        document.getElementById('imagePrompt').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendImagePrompt();
+                e.preventDefault(); // Prevent the default newline action
+            }
+        });
+
+        document.getElementById('sendChatBtn').addEventListener('click', sendChatPrompt);
+        document.getElementById('chatInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendChatPrompt();
+                e.preventDefault(); // Prevent the default newline action
+            }
+        });
+    </script>
+</body>
+</html>
